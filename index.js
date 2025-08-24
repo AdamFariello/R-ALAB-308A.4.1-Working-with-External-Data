@@ -11,7 +11,9 @@ const progressBar = document.getElementById("progressBar");
 const getFavouritesBtn = document.getElementById("getFavouritesBtn");
 
 // Step 0: Store your API key here for reference and easy access.
-const API_KEY = "";
+// https://api.thecatapi.com/v1/images/search?limit=10&breed_ids=beng&api_key=live_eNwPxoZRMH3mO6qHCkdYMYUDUH7CSTJgro1rqqaTDq2fbiPA7cXvmsOT55uV7Mls
+const API_KEY =
+  "live_eNwPxoZRMH3mO6qHCkdYMYUDUH7CSTJgro1rqqaTDq2fbiPA7cXvmsOT55uV7Mls";
 
 /**
  * 1. Create an async function "initialLoad" that does the following:
@@ -21,6 +23,70 @@ const API_KEY = "";
  *  - Each option should display text equal to the name of the breed.
  * This function should execute immediately.
  */
+
+/*
+const url = `https://api.thecatapi.com/v1/images/search?limit=20`;
+const api_key = "DEMO_API_KEY"
+ fetch(url,{headers: {
+  'x-api-key': api_key
+}})
+*/
+
+//TODO: Mention in obsidian that YOU NEED TO INCLUDE" HTTPS AND NOT HTTP
+const baseUrl = "https://api.thecatapi.com/v1";
+async function initialLoad() {
+  try {
+    const url = baseUrl + "/breeds";
+
+    axios.interceptors.request.use((request) => {
+      request.metadata = request.metadata || {};
+      request.metadata.startTime = new Date().getTime();
+      return request;
+    });
+
+    axios.interceptors.response.use(
+      (response) => {
+        response.config.metadata.endTime = new Date().getTime();
+        response.config.metadata.durationInMS =
+          response.config.metadata.endTime - response.config.metadata.startTime;
+
+        console.log(
+          `Breed list request took ${response.config.metadata.durationInMS}ms.`
+        );
+        return response;
+      },
+      (error) => {
+        error.config.metadata.endTime = new Date().getTime();
+        error.config.metadata.durationInMS =
+          error.config.metadata.endTime - error.config.metadata.startTime;
+
+        console.log(
+          `Breed list request took ${error.config.metadata.durationInMS}ms.`
+        );
+        throw error;
+      }
+    );
+
+    const response = await axios.get(url, {
+      headers: { "x-api-key": API_KEY },
+    });
+    const result = response.data;
+
+    for (let breed of result) {
+      let option = document.createElement("option");
+      option.setAttribute("value", breed.id);
+      option.innerText = breed.name;
+      breedSelect.appendChild(option);
+    }
+
+    //TODO: figure out if this is what they meant
+    //      (Doesn't work, so I had to put another at the bottom)
+    Carousel.start();
+  } catch (e) {
+    console.log(e);
+  }
+}
+initialLoad();
 
 /**
  * 2. Create an event handler for breedSelect that does the following:
@@ -36,10 +102,90 @@ const API_KEY = "";
  * - Each new selection should clear, re-populate, and restart the Carousel.
  * - Add a call to this function to the end of your initialLoad function above to create the initial carousel.
  */
+//var sel = document.getElementById("box1");
+//var text= sel.options[sel.selectedIndex].text;
+let imageLimit = 10; //TODO: figure if I should remove limiter
+breedSelect.addEventListener("click", async function (e) {
+  Carousel.clear();
+
+  const breed = document.querySelector(`option[value="${e.target.value}"]`);
+  const breedName = breed.innerText;
+
+  try {
+    //const url = baseUrl + "/breeds/search?q=" + breedName + "&limit=10";
+    const url =
+      baseUrl + "/images/search?q=" + breedName + `&limit=${imageLimit}`;
+
+    axios.interceptors.request.use((request) => {
+      request.metadata = request.metadata || {};
+      request.metadata.startTime = new Date().getTime();
+      return request;
+    });
+
+    axios.interceptors.response.use(
+      (response) => {
+        response.config.metadata.endTime = new Date().getTime();
+        response.config.metadata.durationInMS =
+          response.config.metadata.endTime - response.config.metadata.startTime;
+
+        console.log(
+          `Breed images request took ${response.config.metadata.durationInMS}ms.`
+        );
+        return response;
+      },
+      (error) => {
+        error.config.metadata.endTime = new Date().getTime();
+        error.config.metadata.durationInMS =
+          error.config.metadata.endTime - error.config.metadata.startTime;
+
+        console.log(
+          `Breed images request took ${error.config.metadata.durationInMS}ms.`
+        );
+        throw error;
+      }
+    );
+    const response = await axios.get(url, {
+      headers: { "x-api-key": API_KEY },
+    });
+
+    let results = await response.data;
+
+    for (let result of results) {
+      const imgSrc = result.url;
+
+      let imgAlt;
+      if (result.breeds.length) {
+        if (result.breeds[0].name != undefined) {
+          imgAlt = result.breeds[0].name;
+        } else if (result.breeds[0].alt_names != undefined) {
+          imgAlt = result.breeds[0].alt_names;
+        } else {
+          imgAlt = "imgAlt";
+        }
+      } else {
+        imgAlt = "imgAlt";
+      }
+
+      const imgId = result.id;
+      const item = Carousel.createCarouselItem(imgSrc, imgAlt, imgId);
+      Carousel.appendCarousel(item);
+    }
+
+    //TODO: figure out if this should be removed
+    Carousel.start();
+
+    //TODO: figure out what this section is even for
+    infoDump.innerText = e.target.value;
+  } catch (error) {
+    console.error(error);
+  }
+});
 
 /**
  * 3. Fork your own sandbox, creating a new one named "JavaScript Axios Lab."
  */
+//(THIS IS THE FORK)
+
 /**
  * 4. Change all of your fetch() functions to axios!
  * - axios has already been imported for you within index.js.
@@ -55,6 +201,8 @@ const API_KEY = "";
  * - Add a console.log statement to indicate when requests begin.
  * - As an added challenge, try to do this on your own without referencing the lesson material.
  */
+
+//DONT DO ANYTHING ELSE
 
 /**
  * 6. Next, we'll create a progress bar to indicate the request is in progress.
